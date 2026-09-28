@@ -1,4 +1,6 @@
-
+import streamlit as st
+import matplotlib.pyplot as plt
+import numpy as np
 
 st.set_page_config(page_title="Yield Rate at U.S. Colleges", layout="centered")
 
