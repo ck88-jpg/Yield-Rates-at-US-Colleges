@@ -1,6 +1,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 st.set_page_config(page_title="Yield Rate at U.S. Colleges", layout="centered")
 
@@ -23,58 +24,80 @@ for label in categories_data.keys():
     if st.sidebar.toggle(label, value=True):
         selected_categories.append(label)
 
-# --- Interactive Slider ---
-selected_year = st.slider("Progress Year:", min_value=2001, max_value=2023, value=2023, step=1)
+# --- Interactive Slider & Play Button Layout ---
+col_slider, col_btn = st.columns([4, 1])
 
-# Full dataset timeline
-all_years = np.arange(2001, 2024)
-idx = selected_year - 2001 + 1
-years = all_years[:idx]
+with col_btn:
+    st.write("")  # Spacing alignment with slider
+    st.write("")
+    play_button = st.button("▶ Play", use_container_width=True)
 
-# --- Plot Figure Setup ---
-fig, ax = plt.subplots(figsize=(10, 6.5), facecolor='#ebebeb')
-ax.set_facecolor('#ebebeb')
+with col_slider:
+    selected_year = st.slider("Progress Year:", min_value=2001, max_value=2023, value=2023, step=1)
 
-def chg_str(start, end):
-    c = ((end - start) / start) * 100
-    return f"{'+' if c >= 0 else ''}{c:.1f}%"
+# Placeholder container for updating graph during animation
+plot_container = st.empty()
 
-pct_change_lines = [f"Change (2001–{selected_year})", "------------------------"]
+def create_plot(year):
+    all_years = np.arange(2001, 2024)
+    idx = year - 2001 + 1
+    years = all_years[:idx]
 
-for label in selected_categories:
-    data, color = categories_data[label]
-    series = data[:idx]
-    ax.plot(years, series, color=color, linewidth=2.5, label=label)
-    short_label = label.split(' ')[0]
-    pct_change_lines.append(f"• {short_label}: {chg_str(series[0], series[-1])}")
+    fig, ax = plt.subplots(figsize=(10, 6.5), facecolor='#ebebeb')
+    ax.set_facecolor('#ebebeb')
 
-# COVID-19 Indicator Line
-if selected_year >= 2020:
-    ax.axvline(x=2020, color='#555555', linestyle='--', linewidth=1.5, alpha=0.8)
-    ax.text(2020, 51.5, 'COVID-19 (2020)', fontsize=9, color='#333333', fontweight='bold', ha='center', va='bottom',
-            bbox=dict(boxstyle='square,pad=0.2', facecolor='#ebebeb', edgecolor='none'))
+    def chg_str(start, end):
+        c = ((end - start) / start) * 100
+        return f"{'+' if c >= 0 else ''}{c:.1f}%"
 
-# Axes styling and bounds
-ax.set_ylim(8, 55)
-ax.set_xlim(2000.5, 2023.5)
-ax.set_yticks([10, 20, 30, 40, 50])
-ax.set_yticklabels(['10%', '20%', '30%', '40%', '50% yield rate'], fontsize=10, color='#555555')
-ax.set_xticks([2001, 2005, 2010, 2015, 2020])
-ax.set_xticklabels(['2001', '2005', '2010', '2015', '2020'], fontsize=10, color='#555555')
+    pct_change_lines = [f"Change (2001–{year})", "------------------------"]
 
-for spine in ['top', 'left', 'right']:
-    ax.spines[spine].set_visible(False)
-ax.spines['bottom'].set_color('#cccccc')
-ax.grid(axis='y', linestyle=':', color='#cccccc', alpha=0.7)
+    for label in selected_categories:
+        data, color = categories_data[label]
+        series = data[:idx]
+        ax.plot(years, series, color=color, linewidth=2.5, label=label)
+        short_label = label.split(' ')[0]
+        pct_change_lines.append(f"• {short_label}: {chg_str(series[0], series[-1])}")
 
-# --- Dynamic Placement: Upper-Left Text Box Above Lower-Left Legend ---
-if selected_categories:
-    pct_change_text = "\n".join(pct_change_lines)
-    ax.text(0.03, 0.95, pct_change_text, transform=ax.transAxes, fontsize=9, 
-            verticalalignment='top', horizontalalignment='left',
-            bbox=dict(boxstyle='round,pad=0.5', facecolor='#ffffff', edgecolor='#cccccc', linewidth=1.0))
+    # COVID-19 Indicator Line
+    if year >= 2020:
+        ax.axvline(x=2020, color='#555555', linestyle='--', linewidth=1.5, alpha=0.8)
+        ax.text(2020, 51.5, 'COVID-19 (2020)', fontsize=9, color='#333333', fontweight='bold', ha='center', va='bottom',
+                bbox=dict(boxstyle='square,pad=0.2', facecolor='#ebebeb', edgecolor='none'))
 
-ax.legend(loc='lower left', frameon=True, facecolor='#ffffff', edgecolor='#cccccc', fontsize=8.5)
+    # Axes styling and bounds
+    ax.set_ylim(8, 55)
+    ax.set_xlim(2000.5, 2023.5)
+    ax.set_yticks([10, 20, 30, 40, 50])
+    ax.set_yticklabels(['10%', '20%', '30%', '40%', '50% yield rate'], fontsize=10, color='#555555')
+    ax.set_xticks([2001, 2005, 2010, 2015, 2020])
+    ax.set_xticklabels(['2001', '2005', '2010', '2015', '2020'], fontsize=10, color='#555555')
 
-st.pyplot(fig)
+    for spine in ['top', 'left', 'right']:
+        ax.spines[spine].set_visible(False)
+    ax.spines['bottom'].set_color('#cccccc')
+    ax.grid(axis='y', linestyle=':', color='#cccccc', alpha=0.7)
+
+    # Change box positioned upper-left above legend
+    if selected_categories:
+        pct_change_text = "\n".join(pct_change_lines)
+        ax.text(0.03, 0.95, pct_change_text, transform=ax.transAxes, fontsize=9, 
+                verticalalignment='top', horizontalalignment='left',
+                bbox=dict(boxstyle='round,pad=0.5', facecolor='#ffffff', edgecolor='#cccccc', linewidth=1.0))
+
+    ax.legend(loc='lower left', frameon=True, facecolor='#ffffff', edgecolor='#cccccc', fontsize=8.5)
+    return fig
+
+# Execute automated loop when Play is pressed, otherwise display selected slider year
+if play_button:
+    for yr in range(2001, 2024):
+        fig = create_plot(yr)
+        plot_container.pyplot(fig)
+        plt.close(fig)
+        time.sleep(0.2)
+else:
+    fig = create_plot(selected_year)
+    plot_container.pyplot(fig)
+    plt.close(fig)
+
 st.caption("Source: U.S. Department of Education, National Center for Education Statistics • Note: Based on 2021 admission rates.")
